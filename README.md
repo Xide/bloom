@@ -54,11 +54,10 @@ err := bf.ToFile("file.json")
 Filters can then be imported with :
 
 ```go
+// Import directly from JSON bytes
 bf, err := bloom.FromJSON(bytes)
 
-
-// NotImplemented yet
-
+// Import directly from filesystem (as json)
 bf, err := bloom.FromFile("file.json")
 ```
 

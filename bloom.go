@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 )
@@ -87,6 +88,15 @@ func (bf *Filter) ToFile(path string) error {
 
 	_, err = f.Write(json)
 	return err
+}
+
+// FromFile : Import filter from a file
+func FromFile(path string) (*Filter, error) {
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return FromJSON(bytes)
 }
 
 // FromJSON : Import a JSON serialized bloom filter

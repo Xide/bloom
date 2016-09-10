@@ -102,8 +102,36 @@ func TestExport(t *testing.T) {
 	err = os.Remove("test.json")
 	if err != nil {
 		t.Errorf("Could not remove test json export : %v", err)
-
 	}
+}
+
+func TestImport(t *testing.T) {
+	bf := New(FilterSize, 5)
+	for _, v := range tests {
+		bf.Feed(v)
+	}
+
+	_ = bf.ToFile("test.json")
+
+	cpy, err := FromFile("test.json")
+	if err != nil {
+		t.Errorf("Could not import element from file : %v", err)
+	}
+
+	err = os.Remove("test.json")
+	if err != nil {
+		t.Errorf("Could not remove test json export : %v", err)
+	}
+
+	if !reflect.DeepEqual(bf.arr, cpy.arr) {
+		t.Errorf("Corrupted element when serializing / deserializing : %v", err)
+		fmt.Println("===============ORIGINAL=====================")
+		fmt.Println(bf)
+		fmt.Println("===============COPY    =====================")
+		fmt.Println(cpy)
+		fmt.Println("===============EOT=====================")
+	}
+
 }
 
 // TestMerge : Test the merge functionnality
