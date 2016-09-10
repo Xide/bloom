@@ -41,7 +41,7 @@ bf.Match("foo") && bf.Match("bar")
 ```
 
 
-###### Export filter
+###### Export/Import filter
 ```go
 // Export filter as []byte for exportation
 bytes, _ := bf.ToJSON()
