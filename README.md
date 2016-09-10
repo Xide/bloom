@@ -40,9 +40,27 @@ bf.Match("foo") && bf.Match("bar")
 /// true
 ```
 
-###### Export filter
 
-TODO
+###### Export filter
+```go
+// Export filter as []byte for exportation
+bytes, _ := bf.ToJSON()
+
+// Export directly to filesystem (as json)
+err := bf.ToFile("file.json")
+
+```
+
+Filters can then be imported with :
+
+```go
+bf, err := bloom.FromJSON(bytes)
+
+
+// NotImplemented yet
+
+bf, err := bloom.FromFile("file.json")
+```
 
 ###### Filter fill ratio
 ```go
