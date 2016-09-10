@@ -5,8 +5,12 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 )
+
+// File containing a large number of words for scalable filter testing
+const WordsDictionary = "/usr/share/dict/ngerman"
 
 //FilterSize  test filter size, for uniformization between tests
 const FilterSize = 512
@@ -22,6 +26,9 @@ var tests = []string{
 	"Omelette",
 	"De",
 	"Fromage",
+	"FooBar",
+	"Bar",
+	"Baz",
 }
 
 // TestEmptyQuery : Assert that empty bloom filter Match always return false
@@ -45,9 +52,58 @@ func TestMatch(t *testing.T) {
 	}
 }
 
-// Test JSON Export / Import
+// Test JSON Serialization, for a filter export
 func TestSerialization(t *testing.T) {
-	// TODO
+	bf := New(FilterSize, 5)
+	for _, v := range tests {
+		bf.Feed(v)
+	}
+
+	_, err := bf.ToJSON()
+	if err != nil {
+		t.Errorf("Could not serialize element : %v", err)
+	}
+}
+
+func TestDeserialization(t *testing.T) {
+	bf := New(FilterSize, 5)
+	for _, v := range tests {
+		bf.Feed(v)
+	}
+
+	raw, _ := bf.ToJSON()
+	cpy, err := FromJSON(raw)
+	if err != nil {
+		t.Errorf("Could not import element : %v", err)
+
+	}
+	if !reflect.DeepEqual(bf.arr, cpy.arr) {
+		t.Errorf("Corrupted element when serializing / deserializing : %v", err)
+		fmt.Println("===============ORIGINAL=====================")
+		fmt.Println(bf)
+		fmt.Println("===============COPY    =====================")
+		fmt.Println(cpy)
+		fmt.Println("===============EOT=====================")
+	}
+}
+
+// Test filter file saving
+func TestExport(t *testing.T) {
+	bf := New(FilterSize, 5)
+	for _, v := range tests {
+		bf.Feed(v)
+	}
+
+	err := bf.ToFile("test.json")
+	if err != nil {
+		t.Errorf("Could not export element to file : %v", err)
+	}
+
+	err = os.Remove("test.json")
+	if err != nil {
+		t.Errorf("Could not remove test json export : %v", err)
+
+	}
 }
 
 // TestMerge : Test the merge functionnality
@@ -72,17 +128,6 @@ func TestMerge(t *testing.T) {
 	}
 }
 
-func TestFalseNegative(t *testing.T) {
-	bf := New(FilterSize, 5)
-	for _, v := range tests {
-		bf.Feed(v)
-		if !bf.Match(v) {
-			t.Errorf("Element inserted in filter was not found : %s", v)
-		}
-	}
-	// fmt.Printf("%v\n", bf.fillRatio())
-}
-
 func randString(n int) string {
 	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	var bytes = make([]byte, n)
@@ -94,7 +139,7 @@ func randString(n int) string {
 }
 
 func testScalable(t *testing.T, ex float64, c int, f int) {
-	file, _ := os.Open("/usr/share/dict/ngerman")
+	file, _ := os.Open(WordsDictionary)
 	defer file.Close()
 
 	bf := NewDefaultScalable(ex)
@@ -112,21 +157,20 @@ func testScalable(t *testing.T, ex float64, c int, f int) {
 		}
 	}
 	rate := float64(fp) / float64(total)
-	fmt.Printf("For %d pass: fp: [%d], rate %f\n", total, fp, rate)
+	t.Logf("For %d pass: fp: [%d], rate %f\n", total, fp, rate)
 	if rate > ex {
 		t.Errorf("Unrespected error rate : %f > %f", rate, ex)
 	}
 }
 
 func TestScalableLinuxWords(t *testing.T) {
-	// t.Log("Testing ScalableFilter")
-	// expected := 0.1
-	// c := 100000000
-	// f := 1000000
-	// for expected > 0.001 {
-	// 	testScalable(t, expected, c, f)
-	// 	expected /= 10.0
-	// }
+	expected := 0.1
+	c := 1000000
+	f := 100000
+	for expected > 0.001 {
+		testScalable(t, expected, c, f)
+		expected /= 10.0
+	}
 }
 
 /*

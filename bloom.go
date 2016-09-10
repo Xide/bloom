@@ -2,9 +2,11 @@
 package bloom
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 )
 
 // Hasher : Pluggable hasher type
@@ -17,6 +19,14 @@ type Filter struct {
 	k        uint64
 	inserted uint64
 	hasher   func([]byte) []uint64
+}
+
+// EncodedFilter is the JSON filter structure
+type EncodedFilter struct {
+	Arr      []byte
+	Size     uint64
+	K        uint64
+	Inserted uint64
 }
 
 // New : constructor
@@ -52,13 +62,48 @@ func (bf *Filter) Match(s string) bool {
 
 // ToJSON : Export a byte array that can be later used with bf.FromJSON
 func (bf *Filter) ToJSON() ([]byte, error) {
-	return json.Marshal(bf)
+	enc := &EncodedFilter{
+		Size:     bf.Size,
+		Arr:      bf.arr,
+		K:        bf.k,
+		Inserted: bf.inserted,
+	}
+
+	return json.Marshal(enc)
+}
+
+// ToFile : Export filter to a file
+func (bf *Filter) ToFile(path string) error {
+	json, err := bf.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(json)
+	return err
 }
 
 // FromJSON : Import a JSON serialized bloom filter
-func FromJSON(json []byte) *Filter {
-	// TODO
-	return nil
+func FromJSON(raw []byte) (*Filter, error) {
+	var dat map[string]interface{}
+
+	if err := json.Unmarshal(raw, &dat); err != nil {
+		return nil, err
+	}
+	bf := New(uint64(dat["Size"].(float64)), uint64(dat["K"].(float64)))
+	bf.inserted = uint64(dat["Inserted"].(float64))
+	n, err := base64.StdEncoding.DecodeString(dat["Arr"].(string))
+	if err != nil {
+		return nil, err
+	}
+	bf.arr = n
+	return bf, nil
 }
 
 // Merge two Filters, filters must have the same size
